@@ -1,0 +1,1543 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <title>배틀시티 1985</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: #0d0d10;
+      color: #f4f4f5;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      touch-action: none;
+    }
+    .app {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: env(safe-area-inset-top, 6px) 8px env(safe-area-inset-bottom, 10px) 8px;
+      background: linear-gradient(180deg, #18181b 0%, #09090b 100%);
+    }
+    /* Top App Header */
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 6px;
+      padding: 6px 8px;
+      background: #1f1f23;
+      border: 1px solid #3f3f46;
+      border-radius: 10px;
+      flex-shrink: 0;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      font-weight: 900;
+      letter-spacing: 0.04em;
+      color: #fbbf24;
+    }
+    .brand-badge {
+      background: linear-gradient(135deg, #f97316, #b91c1c);
+      color: #fff;
+      font-size: 10px;
+      padding: 2px 5px;
+      border-radius: 4px;
+    }
+    .top-btns {
+      display: flex;
+      gap: 5px;
+    }
+    .tbtn {
+      background: #27272a;
+      color: #f4f4f5;
+      border: 1px solid #52525b;
+      border-radius: 7px;
+      padding: 5px 8px;
+      font-size: 11px;
+      font-weight: 700;
+      font-family: inherit;
+    }
+    .tbtn:active { background: #3f3f46; }
+
+    /* Compact NES HUD Bar */
+    .hudbar {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 5px;
+      margin-top: 6px;
+      padding: 6px 8px;
+      background: #6b6b6b;
+      border: 2px solid #4a4a4a;
+      border-radius: 8px;
+      flex-shrink: 0;
+    }
+    .hud-cell {
+      background: #3f3f46;
+      border: 1px solid #27272a;
+      border-radius: 5px;
+      padding: 3px 6px;
+      text-align: center;
+    }
+    .hud-lbl { font-size: 9px; color: #d4d4d8; font-weight: 700; }
+    .hud-val { font-size: 13px; font-weight: 900; color: #ffffff; }
+    .hud-val.amber { color: #fde047; }
+    .hud-val.orange { color: #fb923c; }
+    .hud-subbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 4px;
+      padding: 3px 8px;
+      background: #18181b;
+      border: 1px solid #3f3f46;
+      border-radius: 6px;
+      font-size: 11px;
+      flex-shrink: 0;
+    }
+    .enemy-dots {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 2px;
+      max-width: 58%;
+    }
+    .edot {
+      width: 7px;
+      height: 7px;
+      border-radius: 1px;
+      background: #f97316;
+    }
+    .edot.live { background: #ef4444; }
+    .buffs-inline {
+      display: flex;
+      gap: 6px;
+      font-size: 10px;
+      font-weight: 800;
+    }
+
+    /* Square Game Screen */
+    .screen-wrap {
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 6px 0;
+    }
+    .bezel {
+      position: relative;
+      width: min(100%, 440px, 50vh);
+      aspect-ratio: 1 / 1;
+      border: 5px solid #6b6b6b;
+      border-radius: 8px;
+      background: #000;
+      overflow: hidden;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.75);
+    }
+    canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+      image-rendering: pixelated;
+      image-rendering: crisp-edges;
+    }
+    .crt {
+      pointer-events: none;
+      position: absolute;
+      inset: 0;
+      background:
+        linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.26) 50%),
+        radial-gradient(circle at center, transparent 64%, rgba(0, 0, 0, 0.42) 100%);
+      background-size: 100% 4px, 100% 100%;
+    }
+    .hidden { display: none !important; }
+
+    /* Title Controls Overlay */
+    .title-overlay {
+      position: absolute;
+      left: 0; right: 0; bottom: 14px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      z-index: 10;
+    }
+    .title-row { display: flex; gap: 8px; }
+    .btn-primary {
+      background: #f59e0b;
+      color: #000;
+      border: none;
+      border-radius: 8px;
+      padding: 9px 16px;
+      font-size: 12px;
+      font-weight: 900;
+      font-family: inherit;
+      box-shadow: 0 3px 0 #92400e;
+    }
+    .btn-primary:active { transform: translateY(2px); }
+    .btn-secondary {
+      background: #27272a;
+      color: #f4f4f5;
+      border: 1px solid #52525b;
+      border-radius: 8px;
+      padding: 9px 12px;
+      font-size: 12px;
+      font-weight: 800;
+      font-family: inherit;
+    }
+    .stage-picker {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: rgba(0, 0, 0, 0.78);
+      border: 1px solid #52525b;
+      border-radius: 999px;
+      padding: 4px 12px;
+      font-size: 11px;
+      color: #e4e4e7;
+    }
+    .stage-picker button {
+      background: none;
+      border: none;
+      color: #fbbf24;
+      font-size: 14px;
+      font-weight: 900;
+      padding: 2px 6px;
+    }
+
+    /* Editor Toolbar */
+    .editor-bar {
+      position: absolute;
+      top: 6px; left: 6px; right: 6px;
+      background: rgba(0, 0, 0, 0.88);
+      border: 1px solid #52525b;
+      border-radius: 8px;
+      padding: 5px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 4px;
+      z-index: 20;
+    }
+    .brushes { display: flex; gap: 3px; flex-wrap: wrap; }
+    .brush-btn {
+      border-radius: 4px;
+      padding: 4px 6px;
+      font-size: 10px;
+      font-weight: 800;
+      border: 1px solid #52525b;
+      font-family: inherit;
+    }
+    .brush-btn.sel { border: 2px solid #fbbf24; }
+
+    /* Pause Overlay */
+    .pause-overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.7);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+      z-index: 20;
+    }
+    .pause-title {
+      font-size: 26px;
+      font-weight: 900;
+      color: #ef4444;
+      letter-spacing: 0.3em;
+    }
+
+    /* Bottom Handheld Arcade Controller Deck */
+    .deck {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 14px 10px 14px;
+      background: #18181b;
+      border: 1px solid #3f3f46;
+      border-radius: 16px;
+      flex-shrink: 0;
+    }
+    .joy-zone {
+      position: relative;
+      width: 148px;
+      height: 148px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 35% 30%, #27272a, #09090b 75%);
+      border: 3px solid #3f3f46;
+      box-shadow: inset 0 8px 18px rgba(0, 0, 0, 0.9), 0 4px 10px rgba(0, 0, 0, 0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      touch-action: none;
+    }
+    .joy-gate {
+      position: absolute;
+      inset: 14px;
+      border-radius: 50%;
+      border: 1.5px dashed rgba(255, 255, 255, 0.14);
+      pointer-events: none;
+    }
+    .joy-arr {
+      position: absolute;
+      font-size: 12px;
+      font-weight: 900;
+      color: #52525b;
+      pointer-events: none;
+    }
+    .joy-arr.active {
+      color: #fbbf24;
+      text-shadow: 0 0 8px rgba(251, 191, 36, 0.9);
+    }
+    .joy-knob {
+      position: absolute;
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 35% 30%, #ef4444, #991b1b 72%, #450a0a);
+      border: 2.5px solid #fca5a5;
+      box-shadow: 0 7px 14px rgba(0, 0, 0, 0.8), inset 0 2px 5px rgba(255, 255, 255, 0.35);
+      pointer-events: none;
+      transition: transform 60ms ease-out;
+      will-change: transform;
+    }
+    .joy-knob.drag { transition: none; }
+
+    .action-pad {
+      display: flex;
+      align-items: flex-end;
+      gap: 14px;
+    }
+    .btn-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+    }
+    .abtn {
+      border: none;
+      border-radius: 50%;
+      font-family: inherit;
+      font-weight: 900;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      touch-action: none;
+    }
+    .abtn-fire {
+      width: 80px;
+      height: 80px;
+      font-size: 15px;
+      color: #fff;
+      background: radial-gradient(circle at 35% 30%, #f87171, #dc2626 65%, #991b1b);
+      box-shadow: 0 6px 0 #7f1d1d, 0 8px 16px rgba(0, 0, 0, 0.6), inset 0 2px 4px rgba(255, 255, 255, 0.35);
+    }
+    .abtn-fire.pressed {
+      transform: translateY(4px);
+      box-shadow: 0 2px 0 #7f1d1d, 0 3px 6px rgba(0, 0, 0, 0.6);
+    }
+    .abtn-auto {
+      width: 64px;
+      height: 64px;
+      font-size: 12px;
+      color: #000;
+      background: radial-gradient(circle at 35% 30%, #fde047, #f59e0b 65%, #b45309);
+      box-shadow: 0 5px 0 #78350f, 0 8px 14px rgba(0, 0, 0, 0.55), inset 0 2px 4px rgba(255, 255, 255, 0.4);
+    }
+    .abtn-auto.pressed {
+      transform: translateY(4px);
+      box-shadow: 0 1px 0 #78350f, 0 2px 5px rgba(0, 0, 0, 0.55);
+    }
+    .abtn-sub { font-size: 9px; opacity: 0.85; font-weight: 700; }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <!-- Top Header -->
+    <div class="topbar">
+      <div class="brand">
+        <span class="brand-badge">1985</span>
+        <span>BATTLE CITY</span>
+      </div>
+      <div class="top-btns">
+        <button id="btn-audio" class="tbtn" type="button">🔊 BGM</button>
+        <button id="btn-crt" class="tbtn" type="button">📺 CRT</button>
+        <button id="btn-pause" class="tbtn" type="button">⏸</button>
+        <button id="btn-title" class="tbtn" type="button">⌂</button>
+      </div>
+    </div>
+
+    <!-- Classic HUD Bar -->
+    <div class="hudbar">
+      <div class="hud-cell"><div class="hud-lbl">1P SCORE</div><div id="hud-score" class="hud-val amber">0</div></div>
+      <div class="hud-cell"><div class="hud-lbl">HI-SCORE</div><div id="hud-hiscore" class="hud-val orange">20000</div></div>
+      <div class="hud-cell"><div class="hud-lbl">1P 잔기</div><div id="hud-lives" class="hud-val">▲ 3</div></div>
+      <div class="hud-cell"><div class="hud-lbl">STAGE</div><div id="hud-stage" class="hud-val">⚑ 1</div></div>
+    </div>
+    <div class="hud-subbar">
+      <div class="enemy-dots" id="hud-enemy-dots"></div>
+      <div class="buffs-inline">
+        <span id="hud-tier" style="color:#fbbf24;">★☆☆☆</span>
+        <span id="hud-buffs"></span>
+      </div>
+    </div>
+
+    <!-- Main Square Canvas Screen -->
+    <div class="screen-wrap">
+      <div class="bezel">
+        <canvas id="gameCanvas" width="416" height="416"></canvas>
+        <div id="crt-layer" class="crt"></div>
+
+        <!-- Title Overlay -->
+        <div id="title-controls" class="title-overlay">
+          <div class="title-row">
+            <button id="btn-play-1p" class="btn-primary" type="button">▶ 1 PLAYER START</button>
+            <button id="btn-open-editor" class="btn-secondary" type="button">🛠 맵 에디터</button>
+          </div>
+          <div class="stage-picker">
+            <button id="btn-stage-prev" type="button">◀</button>
+            <span>STAGE <strong id="title-stage-num" style="color:#fbbf24;">1</strong> / 10</span>
+            <button id="btn-stage-next" type="button">▶</button>
+          </div>
+        </div>
+
+        <!-- Editor Toolbar -->
+        <div id="editor-toolbar" class="editor-bar hidden">
+          <div id="editor-brushes" class="brushes"></div>
+          <div style="display:flex; gap:4px;">
+            <button id="btn-editor-clear" class="brush-btn" style="background:#3f3f46;color:#fff;" type="button">초기화</button>
+            <button id="btn-editor-play" class="brush-btn" style="background:#f59e0b;color:#000;" type="button">▶ 시작</button>
+          </div>
+        </div>
+
+        <!-- Pause Overlay -->
+        <div id="overlay-pause" class="pause-overlay hidden">
+          <div class="pause-title">PAUSE</div>
+          <button id="btn-resume" class="btn-primary" type="button">계속하기</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bottom Handheld Arcade Deck -->
+    <div class="deck">
+      <div id="joy-zone" class="joy-zone">
+        <div class="joy-gate"></div>
+        <span id="joy-up" class="joy-arr" style="top:6px; left:50%; transform:translateX(-50%);">▲</span>
+        <span id="joy-down" class="joy-arr" style="bottom:6px; left:50%; transform:translateX(-50%);">▼</span>
+        <span id="joy-left" class="joy-arr" style="left:8px; top:50%; transform:translateY(-50%);">◀</span>
+        <span id="joy-right" class="joy-arr" style="right:8px; top:50%; transform:translateY(-50%);">▶</span>
+        <div id="joy-knob" class="joy-knob"></div>
+      </div>
+
+      <div class="action-pad">
+        <div class="btn-wrap">
+          <button id="btn-auto" class="abtn abtn-auto" type="button">
+            <span>AUTO</span>
+            <span class="abtn-sub">연사</span>
+          </button>
+        </div>
+        <div class="btn-wrap">
+          <button id="btn-fire" class="abtn abtn-fire" type="button">
+            <span>FIRE</span>
+            <span class="abtn-sub">발사</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (() => {
+      const CANVAS_SIZE = 416;
+      const SUB = 16;
+      const HALF = 8;
+      const GRID = 26;
+      const TANK_SIZE = 28;
+      const BULLET_SIZE = 6;
+
+      const T_EMPTY = 0, T_BRICK = 1, T_STEEL = 2, T_BUSH = 3, T_WATER = 4, T_ICE = 5, T_EAGLE = 9, T_EAGLE_DEAD = 10;
+      const B_TL = 1, B_TR = 2, B_BL = 4, B_BR = 8, B_FULL = 15;
+      const DX = [0, 1, 0, -1];
+      const DY = [-1, 0, 1, 0];
+
+      const PU_STAR = 'star', PU_HELMET = 'helmet', PU_CLOCK = 'clock', PU_SHOVEL = 'shovel', PU_GRENADE = 'grenade', PU_TANK = 'tank';
+      const ALL_POWERUPS = [PU_STAR, PU_HELMET, PU_CLOCK, PU_SHOVEL, PU_GRENADE, PU_TANK];
+
+      const ENEMY_SPECS = {
+        basic: { name: '일반 탱크', speed: 1.15, bulletSpeed: 3.7, hp: 1, points: 100 },
+        fast:  { name: '고속 탱크', speed: 2.05, bulletSpeed: 4.1, hp: 1, points: 200 },
+        power: { name: '속사 탱크', speed: 1.35, bulletSpeed: 6.0, hp: 1, points: 300 },
+        armor: { name: '중장갑 탱크', speed: 1.08, bulletSpeed: 4.3, hp: 4, points: 400 },
+      };
+
+      function haptic(ms) {
+        try {
+          if (window.AndroidBridge && typeof window.AndroidBridge.vibrate === 'function') {
+            window.AndroidBridge.vibrate(ms);
+          } else if (navigator.vibrate) {
+            navigator.vibrate(ms);
+          }
+        } catch (_) {}
+      }
+
+      // ============================================================
+      // NES 2A03 AUDIO ENGINE (ENGINE HUM + 8-BIT BGM + SFX)
+      // ============================================================
+      class FamicomAudio {
+        constructor() {
+          this.ctx = null;
+          this.masterGain = null;
+          this.engineGain = null;
+          this.engineOsc = null;
+          this.engineLfo = null;
+          this.engineRunning = false;
+          this.audioMode = 'bgm'; // 'bgm' | 'orig' | 'mute'
+          this.bgmStep = 0;
+          this.bgmTimer = 0;
+        }
+        init() {
+          if (!this.ctx) {
+            const AC = window.AudioContext || window.webkitAudioContext;
+            if (!AC) return;
+            this.ctx = new AC();
+            this.masterGain = this.ctx.createGain();
+            this.masterGain.gain.value = 0.9;
+            this.masterGain.connect(this.ctx.destination);
+            this._setupEngine();
+          }
+          if (this.ctx.state === 'suspended') this.ctx.resume();
+        }
+        _setupEngine() {
+          const osc = this.ctx.createOscillator();
+          osc.type = 'sawtooth';
+          osc.frequency.value = 46;
+          const filter = this.ctx.createBiquadFilter();
+          filter.type = 'lowpass';
+          filter.frequency.value = 210;
+          const ampMod = this.ctx.createGain();
+          ampMod.gain.value = 0.5;
+          const lfo = this.ctx.createOscillator();
+          lfo.type = 'square';
+          lfo.frequency.value = 9;
+          const lfoGain = this.ctx.createGain();
+          lfoGain.gain.value = 0.45;
+          const outGain = this.ctx.createGain();
+          outGain.gain.value = 0;
+          lfo.connect(lfoGain);
+          lfoGain.connect(ampMod.gain);
+          osc.connect(filter);
+          filter.connect(ampMod);
+          ampMod.connect(outGain);
+          outGain.connect(this.masterGain);
+          osc.start();
+          lfo.start();
+          this.engineOsc = osc;
+          this.engineLfo = lfo;
+          this.engineGain = outGain;
+          this.engineRunning = true;
+        }
+        updateEngine(active, moving) {
+          if (!this.engineRunning || !this.ctx) return;
+          const now = this.ctx.currentTime;
+          if (!active || this.audioMode === 'mute') {
+            this.engineGain.gain.setTargetAtTime(0, now, 0.025);
+            return;
+          }
+          this.engineGain.gain.setTargetAtTime(moving ? 0.08 : 0.032, now, 0.03);
+          this.engineOsc.frequency.setTargetAtTime(moving ? 62 : 44, now, 0.03);
+          this.engineLfo.frequency.setTargetAtTime(moving ? 19 : 9.5, now, 0.03);
+        }
+        tickBGM(playing) {
+          if (!playing || this.audioMode !== 'bgm' || !this.ctx) return;
+          this.bgmTimer--;
+          if (this.bgmTimer > 0) return;
+          this.bgmTimer = 11;
+          const lead = [
+            330,0,330,392,440,0,392,0, 330,0,294,330,262,0,0,0,
+            392,0,392,440,494,0,440,0, 392,330,294,330,392,0,0,0,
+            523,0,494,440,392,0,330,0, 440,0,392,330,294,0,0,0,
+            330,392,440,494,523,0,392,0, 440,392,330,294,262,0,0,0
+          ];
+          const bass = [
+            131,0,196,0,131,0,196,0, 147,0,196,0,131,0,165,0,
+            196,0,247,0,196,0,247,0, 196,0,147,0,196,0,147,0,
+            175,0,220,0,131,0,196,0, 147,0,175,0,196,0,147,0,
+            131,0,175,0,196,0,131,0, 147,0,196,0,131,0,131,0
+          ];
+          const idx = this.bgmStep++ % lead.length;
+          if (lead[idx] > 0) this._tone(lead[idx], 0.13, 'square', 0.025, 0);
+          if (bass[idx] > 0) this._tone(bass[idx], 0.15, 'triangle', 0.055, 0);
+        }
+        _tone(freq, dur, type = 'square', vol = 0.08, delay = 0, slideTo = null) {
+          if (this.audioMode === 'mute') return;
+          this.init();
+          if (!this.ctx) return;
+          const t = this.ctx.currentTime + delay;
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = type;
+          osc.frequency.setValueAtTime(freq, t);
+          if (slideTo) osc.frequency.exponentialRampToValueAtTime(Math.max(20, slideTo), t + dur);
+          gain.gain.setValueAtTime(vol, t);
+          gain.gain.exponentialRampToValueAtTime(0.001, t + dur);
+          osc.connect(gain);
+          gain.connect(this.masterGain);
+          osc.start(t);
+          osc.stop(t + dur + 0.015);
+        }
+        _noise(dur, vol = 0.12, delay = 0, cutoff = 1200) {
+          if (this.audioMode === 'mute') return;
+          this.init();
+          if (!this.ctx) return;
+          const sr = this.ctx.sampleRate;
+          const len = Math.floor(sr * dur);
+          const buf = this.ctx.createBuffer(1, len, sr);
+          const d = buf.getChannelData(0);
+          let hold = 0;
+          for (let i = 0; i < len; i++) {
+            if (i % 6 === 0) hold = Math.random() * 2 - 1;
+            d[i] = hold * Math.pow(1 - i / len, 0.7);
+          }
+          const src = this.ctx.createBufferSource();
+          src.buffer = buf;
+          const flt = this.ctx.createBiquadFilter();
+          flt.type = 'lowpass';
+          flt.frequency.value = cutoff;
+          const g = this.ctx.createGain();
+          const t = this.ctx.currentTime + delay;
+          g.gain.setValueAtTime(vol, t);
+          g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+          src.connect(flt);
+          flt.connect(g);
+          g.connect(this.masterGain);
+          src.start(t);
+        }
+        shoot() { this._tone(740, 0.075, 'square', 0.08, 0, 170); this._noise(0.035, 0.05, 0, 2200); }
+        hitBrick() { this._noise(0.08, 0.11, 0, 900); this._tone(160, 0.06, 'triangle', 0.08, 0, 70); }
+        hitSteel() { this._tone(1174, 0.045, 'square', 0.07, 0, 880); this._tone(880, 0.055, 'square', 0.06, 0.035, 587); }
+        hitArmor() { this._tone(660, 0.05, 'square', 0.08, 0, 440); this._tone(880, 0.05, 'square', 0.06, 0.04, 520); }
+        explodeTank() { this._noise(0.32, 0.18, 0, 750); this._tone(150, 0.28, 'triangle', 0.13, 0, 34); }
+        explodeBase() { this._noise(0.65, 0.25, 0, 620); this._tone(130, 0.55, 'sawtooth', 0.12, 0, 24); this._noise(0.45, 0.18, 0.18, 480); }
+        powerupAppear() { [440,554,659,880].forEach((f,i)=>this._tone(f,0.055,'square',0.065,i*0.045)); }
+        powerupPickup() { [523,659,784,1046,1318].forEach((f,i)=>this._tone(f,0.075,'square',0.075,i*0.05)); }
+        oneUp() { [659,784,1318,1046,1175,1568].forEach((f,i)=>this._tone(f,0.085,'square',0.08,i*0.065)); }
+        scoreTick() { this._tone(988, 0.035, 'square', 0.055, 0); }
+        stageStart() {
+          const m = [[392,0.11,0],[494,0.11,0.12],[587,0.11,0.24],[392,0.11,0.40],[494,0.11,0.52],[587,0.11,0.64],[440,0.11,0.80],[523,0.11,0.92],[659,0.11,1.04],[440,0.11,1.20],[523,0.11,1.32],[659,0.11,1.44],[784,0.36,1.60]];
+          const b = [[196,0.32,0],[196,0.32,0.40],[220,0.32,0.80],[220,0.32,1.20],[196,0.38,1.60]];
+          m.forEach(([f,d,t])=>this._tone(f,d,'square',0.075,t));
+          b.forEach(([f,d,t])=>this._tone(f,d,'triangle',0.11,t));
+        }
+        gameOver() {
+          [[392,0.16,0],[370,0.16,0.18],[349,0.16,0.36],[330,0.16,0.54],[294,0.16,0.72],[262,0.45,0.90]]
+            .forEach(([f,d,t])=>{ this._tone(f,d,'square',0.07,t); this._tone(f/2,d,'triangle',0.09,t); });
+        }
+      }
+      const sfx = new FamicomAudio();
+
+      // ============================================================
+      // 10 CLASSIC STAGES
+      // ============================================================
+      const STAGES = [
+        { name: '클래식 전선', queue: 'bbbbbbbbbbbbffbbffpb'.split(''), layout: ['.............','.B.B.B.B.B.B.','.B.B.B.B.B.B.','.B.B.BSB.B.B.','.B.B.B.B.B.B.','.B.B.....B.B.','....BB.BB....','S.BB.....BB.S','..B..BBB..B..','.B.B.B.B.B.B.','.B.B.B.B.B.B.','.B.B.....B.B.','.............'] },
+        { name: '강철 요새', queue: 'bbbfbpbbabbfpbbabpfa'.split(''), layout: ['.............','...S.....S...','.B.S.B.B.S.B.','.B...B.B...B.','.B.T.BBB.T.B.','..TT.....TT..','S.BB.S.S.BB.S','..B..B.B..B..','.B.B.BBB.B.B.','.B.S.....S.B.','.B.B.B.B.B.B.','.............','.............'] },
+        { name: '숲과 강', queue: 'fbfpbfapfbfpafapfapa'.split(''), layout: ['.............','.BB..TTT..BB.','.BB..TTT..BB.','....B...B....','WWW.BB.BB.WWW','WWW.S...S.WWW','....BB.BB....','.B.T.....T.B.','.B.TB.B.BT.B.','.B....B....B.','.BB..BBB..BB.','.............','.............'] },
+        { name: '빙판 기동전', queue: 'ffpabfpffapfbapfapaa'.split(''), layout: ['.............','.B.II.S.II.B.','.B.II.B.II.B.','...BB...BB...','.S.II.B.II.S.','.B.II.B.II.B.','.B..BBBBB..B.','..TT.....TT..','.B.S.BBB.S.B.','.B.B.....B.B.','.B.B.BBB.B.B.','.............','.............'] },
+        { name: '쌍둥이 성벽', queue: 'pfapfapafpafapafapaa'.split(''), layout: ['.............','.BBB..S..BBB.','.B.B..S..B.B.','.B.B.TTT.B.B.','...S.TTT.S...','.WW..BBB..WW.','.WW.B...B.WW.','...SB.B.BS...','.B..B.B.B..B.','.B.B.....B.B.','.B.B.BBB.B.B.','.............','.............'] },
+        { name: '십자 포화', queue: 'ffppaaabffppaaaffpaa'.split(''), layout: ['.............','..B..BBB..B..','.BB..B.B..BB.','....S.B.S....','.TT.B.S.B.TT.','.BB.BBSBB.BB.','....B.S.B....','.S..B.B.B..S.','..B.......B..','.B.B.BBB.B.B.','.B.B.....B.B.','.............','.............'] },
+        { name: '밀림 매복전', queue: 'pfafpfafapfapfapafaa'.split(''), layout: ['.............','.TT.B.S.B.TT.','.TT.B.B.B.TT.','.B..TTTTT..B.','.B.STTTTTTSB.','....BB.BB....','.TT..B.B..TT.','.TT.S...S.TT.','.B..BB.BB..B.','.B.B.....B.B.','.B.B.BBB.B.B.','.............','.............'] },
+        { name: '운하 돌파', queue: 'apfapfapffppaapfapaa'.split(''), layout: ['.............','.S.BB...BB.S.','.B..B.S.B..B.','WW..B.B.B..WW','WW.SS...SS.WW','....B.W.B....','.B.BB.W.BB.B.','.B..T...T..B.','.S.BB.B.BB.S.','..B...B...B..','.B.B.BBB.B.B.','.............','.............'] },
+        { name: '빙하 요새', queue: 'aappffaappffaappffaa'.split(''), layout: ['.............','.II.S.B.S.II.','.II.B.B.B.II.','.B..IIIII..B.','.B.SIIBIIS.B.','....B.S.B....','.II.BB.BB.II.','.II..T.T..II.','.B.S.BBB.S.B.','.B.B.....B.B.','.B.B.BBB.B.B.','.............','.............'] },
+        { name: '최종 성채', queue: 'apfapafpaapafpaapaaa'.split(''), layout: ['.............','.S.B.SSS.B.S.','.B.B.B.B.B.B.','.B..TT.TT..B.','..SB.B.B.BS..','W..B.S.S.B..W','W.BB..I..BB.W','..B.SS.SS.B..','.B.B.BBB.B.B.','.B.S.....S.B.','.B.B.BBB.B.B.','.............','.............'] }
+      ];
+      const QMAP = { b: 'basic', f: 'fast', p: 'power', a: 'armor' };
+      let customLayout = STAGES[0].layout.map(r => r.split(''));
+      let isPlayingCustom = false;
+
+      // ============================================================
+      // STATE & UI REFS
+      // ============================================================
+      const canvas = document.getElementById('gameCanvas');
+      const ctx = canvas.getContext('2d');
+      const ui = {
+        titleControls: document.getElementById('title-controls'),
+        titleStageNum: document.getElementById('title-stage-num'),
+        editorToolbar: document.getElementById('editor-toolbar'),
+        editorBrushes: document.getElementById('editor-brushes'),
+        overlayPause: document.getElementById('overlay-pause'),
+        crtLayer: document.getElementById('crt-layer'),
+        hudScore: document.getElementById('hud-score'),
+        hudHiscore: document.getElementById('hud-hiscore'),
+        hudLives: document.getElementById('hud-lives'),
+        hudStage: document.getElementById('hud-stage'),
+        hudEnemyDots: document.getElementById('hud-enemy-dots'),
+        hudTier: document.getElementById('hud-tier'),
+        hudBuffs: document.getElementById('hud-buffs'),
+        btnAudio: document.getElementById('btn-audio'),
+        btnCrt: document.getElementById('btn-crt'),
+        btnPause: document.getElementById('btn-pause'),
+        btnTitle: document.getElementById('btn-title'),
+        btnPlay1p: document.getElementById('btn-play-1p'),
+        btnOpenEditor: document.getElementById('btn-open-editor'),
+        btnStagePrev: document.getElementById('btn-stage-prev'),
+        btnStageNext: document.getElementById('btn-stage-next'),
+        btnResume: document.getElementById('btn-resume'),
+        btnEditorClear: document.getElementById('btn-editor-clear'),
+        btnEditorPlay: document.getElementById('btn-editor-play'),
+        btnFire: document.getElementById('btn-fire'),
+        btnAuto: document.getElementById('btn-auto'),
+        joyZone: document.getElementById('joy-zone'),
+        joyKnob: document.getElementById('joy-knob'),
+        joyArrows: [
+          document.getElementById('joy-up'),
+          document.getElementById('joy-right'),
+          document.getElementById('joy-down'),
+          document.getElementById('joy-left'),
+        ],
+      };
+
+      let hiScore = Number(localStorage.getItem('bc1985_hi') || 20000);
+      let selectedStartStage = 1;
+      let crtEnabled = true;
+
+      let state = 'title';
+      let tick = 0, stageNum = 1, score = 0, nextExtraLifeScore = 20000, lives = 3, playerTier = 0;
+      let map = [], brickMask = [];
+      let player = null, enemies = [], bullets = [], explosions = [], floatingTexts = [], spawnEffects = [], powerups = [];
+      let enemyQueue = [], totalSpawned = 0, spawnCooldown = 0, spawnSlotIndex = 0;
+      let stageKills = { basic: 0, fast: 0, power: 0, armor: 0 };
+      let freezeTimer = 0, shovelTimer = 0, stageClearDelay = 0, eagleDestroyed = false;
+
+      let curtainProgress = 0, curtainPhase = 'close', curtainTimer = 0;
+      let gameOverScrollY = CANVAS_SIZE, gameOverActive = false, gameOverHold = 0;
+      let tallyRowIdx = 0, tallyRowCount = 0, tallyTimer = 0, tallyDone = false;
+
+      const keys = {};
+      let dirOrder = [];
+      let joyDir = null, fireHeld = false, autoHeld = false;
+      let editorBrush = 'B', editorPainting = false;
+
+      // Android native lifecycle hooks
+      window.__onAndroidPause = () => {
+        sfx.updateEngine(false, false);
+        if (state === 'playing') togglePause();
+      };
+      window.__onAndroidBack = () => {
+        if (state === 'playing') { togglePause(); return true; }
+        if (state === 'paused' || state === 'editor' || state === 'gameover') { showTitle(); return true; }
+        return false;
+      };
+
+      // ============================================================
+      // MAP & ENTITIES
+      // ============================================================
+      const BASE_FORT = [[11,23],[12,23],[13,23],[14,23],[11,24],[14,24],[11,25],[14,25]];
+
+      function buildStageMap(rows) {
+        map = Array.from({ length: GRID }, () => Array(GRID).fill(T_EMPTY));
+        brickMask = Array.from({ length: GRID }, () => Array(GRID).fill(0));
+        const cmap = { '.': T_EMPTY, 'B': T_BRICK, 'S': T_STEEL, 'T': T_BUSH, 'W': T_WATER, 'I': T_ICE };
+        for (let mr = 0; mr < 13; mr++) {
+          for (let mc = 0; mc < 13; mc++) {
+            const tile = cmap[rows[mr][mc]] ?? T_EMPTY;
+            for (let dr = 0; dr < 2; dr++) for (let dc = 0; dc < 2; dc++) {
+              map[mr * 2 + dr][mc * 2 + dc] = tile;
+              if (tile === T_BRICK) brickMask[mr * 2 + dr][mc * 2 + dc] = B_FULL;
+            }
+          }
+        }
+        [[0,0],[12,0],[24,0],[8,24],[12,24]].forEach(([cx,cy]) => {
+          for (let dr = 0; dr < 2; dr++) for (let dc = 0; dc < 2; dc++) {
+            map[cy + dr][cx + dc] = T_EMPTY; brickMask[cy + dr][cx + dc] = 0;
+          }
+        });
+        map[24][12] = map[24][13] = map[25][12] = map[25][13] = T_EAGLE;
+        setBaseFort(T_BRICK);
+      }
+
+      function setBaseFort(t) {
+        BASE_FORT.forEach(([c,r]) => { map[r][c] = t; brickMask[r][c] = t === T_BRICK ? B_FULL : 0; });
+      }
+
+      function spawnPlayer() {
+        player = { x: 8*SUB+2, y: 24*SUB+2, w: TANK_SIZE, h: TANK_SIZE, dir: 0, speed: 1.8, shield: 180, shootCooldown: 0, trackFrame: 0, slideFrames: 0, slideDir: 0, alive: true };
+      }
+
+      function scheduleEnemySpawn() {
+        if (!enemyQueue.length) return;
+        const col = [0, 12, 24][spawnSlotIndex++ % 3];
+        const sx = col * SUB + 2, sy = 2;
+        const box = { x: sx - 2, y: sy - 2, w: TANK_SIZE + 4, h: TANK_SIZE + 4 };
+        if (player && player.alive && rectsOverlap(box, player)) return;
+        for (const e of enemies) if (rectsOverlap(box, e)) return;
+        for (const sp of spawnEffects) if (Math.abs(sp.x - sx) < 20 && Math.abs(sp.y - sy) < 20) return;
+        const type = enemyQueue.shift();
+        totalSpawned++;
+        spawnEffects.push({ x: sx, y: sy, timer: 44, type, isBonus: (totalSpawned === 4 || totalSpawned === 11 || totalSpawned === 18) });
+        spawnCooldown = Math.max(48, 110 - stageNum * 7);
+      }
+
+      function createEnemy(x, y, type, isBonus) {
+        const s = ENEMY_SPECS[type];
+        const boost = Math.floor((stageNum - 1) / STAGES.length) * 0.2;
+        enemies.push({ x, y, w: TANK_SIZE, h: TANK_SIZE, dir: 2, type, speed: s.speed + boost, bulletSpeed: s.bulletSpeed + boost * 1.4, hp: s.hp, maxHp: s.hp, points: s.points, isBonus, aiTimer: 40 + Math.floor(Math.random() * 65), shootCooldown: 28 + Math.floor(Math.random() * 48), trackFrame: 0 });
+      }
+
+      function spawnPowerup() {
+        const type = ALL_POWERUPS[Math.floor(Math.random() * ALL_POWERUPS.length)];
+        powerups = [{ x: 34 + Math.floor(Math.random() * 11) * 32, y: 34 + Math.floor(Math.random() * 10) * 32, w: 28, h: 28, type, timer: 660 }];
+        sfx.powerupAppear();
+      }
+
+      function addExplosion(cx, cy, big = false) {
+        explosions.push({ x: cx, y: cy, radius: big ? 30 : 14, timer: big ? 26 : 14, maxTimer: big ? 26 : 14, big });
+      }
+      function addFloatingText(x, y, text, color = '#fff') { floatingTexts.push({ x, y, text, color, timer: 48 }); }
+      function addScore(pts, x = null, y = null, label = null) {
+        score += pts;
+        if (score > hiScore) { hiScore = score; localStorage.setItem('bc1985_hi', String(hiScore)); }
+        if (score >= nextExtraLifeScore) { lives++; nextExtraLifeScore += 30000; sfx.oneUp(); addFloatingText(CANVAS_SIZE/2, 130, '1UP', '#4ade80'); }
+        if (x !== null && y !== null) addFloatingText(x, y, label || String(pts));
+        updateHUD();
+      }
+
+      function rectsOverlap(a, b) { return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y; }
+
+      function isTankBlocked(x, y, self) {
+        if (x < 0 || y < 0 || x + TANK_SIZE > CANVAS_SIZE || y + TANK_SIZE > CANVAS_SIZE) return true;
+        const l = Math.floor(x / SUB), r = Math.floor((x + TANK_SIZE - 0.01) / SUB);
+        const t = Math.floor(y / SUB), b = Math.floor((y + TANK_SIZE - 0.01) / SUB);
+        const tr = { x, y, w: TANK_SIZE, h: TANK_SIZE };
+        for (let row = t; row <= b; row++) {
+          for (let col = l; col <= r; col++) {
+            const tile = map[row][col];
+            if (tile === T_STEEL || tile === T_WATER || tile === T_EAGLE || tile === T_EAGLE_DEAD) return true;
+            if (tile === T_BRICK) {
+              const m = brickMask[row][col];
+              if (!m) continue;
+              const bx = col * SUB, by = row * SUB;
+              if ((m & B_TL) && rectsOverlap(tr, { x: bx, y: by, w: HALF, h: HALF })) return true;
+              if ((m & B_TR) && rectsOverlap(tr, { x: bx + HALF, y: by, w: HALF, h: HALF })) return true;
+              if ((m & B_BL) && rectsOverlap(tr, { x: bx, y: by + HALF, w: HALF, h: HALF })) return true;
+              if ((m & B_BR) && rectsOverlap(tr, { x: bx + HALF, y: by + HALF, w: HALF, h: HALF })) return true;
+            }
+          }
+        }
+        if (player && player.alive && player !== self && rectsOverlap(tr, player)) return true;
+        for (const e of enemies) if (e !== self && rectsOverlap(tr, e)) return true;
+        return false;
+      }
+
+      function isOnIce(t) {
+        const cx = Math.floor((t.x + t.w / 2) / SUB), cy = Math.floor((t.y + t.h / 2) / SUB);
+        return cy >= 0 && cy < GRID && cx >= 0 && cx < GRID && map[cy][cx] === T_ICE;
+      }
+
+      function moveTank(t, dir, spd) {
+        t.dir = dir;
+        const nx = t.x + DX[dir] * spd, ny = t.y + DY[dir] * spd;
+        if (!isTankBlocked(nx, ny, t)) { t.x = nx; t.y = ny; t.trackFrame = (t.trackFrame + 1) % 8; return true; }
+        if (dir === 0 || dir === 2) {
+          const sx = Math.round((t.x - 2) / SUB) * SUB + 2;
+          if (Math.abs(sx - t.x) <= 8 && !isTankBlocked(sx, ny, t)) { t.x = sx; t.y = ny; t.trackFrame = (t.trackFrame + 1) % 8; return true; }
+        } else {
+          const sy = Math.round((t.y - 2) / SUB) * SUB + 2;
+          if (Math.abs(sy - t.y) <= 8 && !isTankBlocked(nx, sy, t)) { t.x = nx; t.y = sy; t.trackFrame = (t.trackFrame + 1) % 8; return true; }
+        }
+        return false;
+      }
+
+      function fireBullet(t, isP) {
+        if (isP) {
+          if (bullets.filter(b => b.isPlayer).length >= (playerTier >= 2 ? 2 : 1) || t.shootCooldown > 0) return;
+          t.shootCooldown = playerTier >= 2 ? 11 : 15;
+          haptic(16);
+        } else {
+          if (bullets.filter(b => b.owner === t).length >= 1 || t.shootCooldown > 0) return;
+          t.shootCooldown = 34 + Math.floor(Math.random() * 44);
+        }
+        const spd = isP ? (playerTier >= 1 ? 6.0 : 4.3) : t.bulletSpeed;
+        const pow = isP && playerTier >= 3 ? 2 : 1;
+        const cx = t.x + t.w / 2, cy = t.y + t.h / 2, off = t.w / 2 + 1;
+        bullets.push({ x: cx + DX[t.dir] * off - BULLET_SIZE / 2, y: cy + DY[t.dir] * off - BULLET_SIZE / 2, w: BULLET_SIZE, h: BULLET_SIZE, dir: t.dir, speed: spd, isPlayer: isP, power: pow, owner: t });
+        if (isP) sfx.shoot();
+      }
+
+      // ============================================================
+      // GAME FLOW
+      // ============================================================
+      function showTitle() {
+        state = 'title';
+        sfx.updateEngine(false, false);
+        ui.titleControls.classList.remove('hidden');
+        ui.editorToolbar.classList.add('hidden');
+        ui.overlayPause.classList.add('hidden');
+        ui.btnPause.textContent = '⏸';
+        ui.titleStageNum.textContent = selectedStartStage;
+        updateHUD();
+      }
+
+      function startNewGame(custom = false) {
+        sfx.init();
+        isPlayingCustom = custom;
+        stageNum = custom ? 1 : selectedStartStage;
+        score = 0; nextExtraLifeScore = 20000; lives = 3; playerTier = 0;
+        startStageWithCurtain(stageNum);
+      }
+
+      function startStageWithCurtain(num) {
+        stageNum = num; state = 'curtain'; curtainPhase = 'close'; curtainProgress = 0; curtainTimer = 0;
+        ui.titleControls.classList.add('hidden');
+        ui.editorToolbar.classList.add('hidden');
+        ui.overlayPause.classList.add('hidden');
+        ui.btnPause.textContent = '⏸';
+        sfx.updateEngine(false, false);
+
+        const spec = STAGES[(stageNum - 1) % STAGES.length];
+        buildStageMap(isPlayingCustom ? customLayout.map(r => r.join('')) : spec.layout);
+        enemies = []; bullets = []; explosions = []; floatingTexts = []; spawnEffects = []; powerups = [];
+        enemyQueue = spec.queue.map(ch => QMAP[ch]);
+        totalSpawned = 0; spawnCooldown = 25; spawnSlotIndex = 0;
+        stageKills = { basic: 0, fast: 0, power: 0, armor: 0 };
+        freezeTimer = 0; shovelTimer = 0; stageClearDelay = 0; eagleDestroyed = false;
+        gameOverActive = false; gameOverScrollY = CANVAS_SIZE; gameOverHold = 0;
+        spawnPlayer();
+        updateHUD();
+      }
+
+      function openEditor() {
+        sfx.init();
+        state = 'editor';
+        sfx.updateEngine(false, false);
+        ui.titleControls.classList.add('hidden');
+        ui.overlayPause.classList.add('hidden');
+        ui.editorToolbar.classList.remove('hidden');
+        buildStageMap(customLayout.map(r => r.join('')));
+        renderEditorBrushes();
+      }
+
+      function renderEditorBrushes() {
+        const list = [['B','벽돌','#c2410c','#fff'],['S','강철','#9ca3af','#000'],['T','숲','#16a34a','#fff'],['W','물','#2563eb','#fff'],['I','얼음','#cbd5e1','#000'],['.','지움','#18181b','#fff']];
+        ui.editorBrushes.innerHTML = list.map(([ch,lbl,bg,fg]) =>
+          `<button data-b="${ch}" class="brush-btn ${editorBrush===ch?'sel':''}" style="background:${bg};color:${fg};" type="button">${lbl}</button>`
+        ).join('');
+        ui.editorBrushes.querySelectorAll('button').forEach(b => b.addEventListener('click', () => { editorBrush = b.dataset.b; renderEditorBrushes(); }));
+      }
+
+      function togglePause() {
+        if (state === 'playing') {
+          state = 'paused'; sfx.updateEngine(false, false);
+          ui.overlayPause.classList.remove('hidden'); ui.btnPause.textContent = '▶';
+        } else if (state === 'paused') {
+          state = 'playing'; ui.overlayPause.classList.add('hidden'); ui.btnPause.textContent = '⏸';
+        }
+      }
+
+      // ============================================================
+      // UPDATE
+      // ============================================================
+      function update() {
+        tick++;
+        if (state === 'curtain') {
+          if (curtainPhase === 'close') {
+            curtainProgress += 0.06;
+            if (curtainProgress >= 1) { curtainProgress = 1; curtainPhase = 'hold'; curtainTimer = 95; sfx.stageStart(); }
+          } else if (curtainPhase === 'hold') {
+            if (--curtainTimer <= 0) curtainPhase = 'open';
+          } else {
+            curtainProgress -= 0.06;
+            if (curtainProgress <= 0) { curtainProgress = 0; state = 'playing'; }
+          }
+          return;
+        }
+        if (state === 'tally') {
+          const order = ['basic', 'fast', 'power', 'armor'];
+          if (tallyDone) {
+            if (--tallyTimer <= 0) { isPlayingCustom = false; startStageWithCurtain(stageNum + 1); }
+            return;
+          }
+          if (--tallyTimer > 0) return;
+          if (tallyRowCount < stageKills[order[tallyRowIdx]]) {
+            tallyRowCount++; sfx.scoreTick(); tallyTimer = 8;
+          } else {
+            tallyRowIdx++; tallyRowCount = 0; tallyTimer = 22;
+            if (tallyRowIdx >= order.length) { tallyDone = true; tallyTimer = 110; }
+          }
+          return;
+        }
+        if (state !== 'playing') return;
+
+        sfx.tickBGM(!gameOverActive);
+        if (freezeTimer > 0) freezeTimer--;
+        if (shovelTimer > 0) {
+          shovelTimer--;
+          if (shovelTimer === 0) setBaseFort(T_BRICK);
+          else if (shovelTimer < 180) setBaseFort(Math.floor(shovelTimer / 14) % 2 === 0 ? T_BRICK : T_STEEL);
+        }
+
+        if (gameOverActive) {
+          if (gameOverScrollY > CANVAS_SIZE / 2 - 20) gameOverScrollY -= 2.4;
+          else if (++gameOverHold > 120) { state = 'gameover'; sfx.updateEngine(false, false); }
+        }
+
+        const maxActive = Math.min(5, 4 + Math.floor((stageNum - 1) / 3));
+        if (enemyQueue.length > 0 && enemies.length + spawnEffects.length < maxActive) {
+          if (spawnCooldown > 0) spawnCooldown--;
+          else scheduleEnemySpawn();
+        }
+        for (let i = spawnEffects.length - 1; i >= 0; i--) {
+          if (--spawnEffects[i].timer <= 0) {
+            const sp = spawnEffects.splice(i, 1)[0];
+            createEnemy(sp.x, sp.y, sp.type, sp.isBonus);
+            updateHUD();
+          }
+        }
+
+        let moving = false;
+        if (player && player.alive && !gameOverActive) {
+          if (player.shield > 0) player.shield--;
+          if (player.shootCooldown > 0) player.shootCooldown--;
+          const d = getPlayerInputDir();
+          if (d !== null) {
+            moveTank(player, d, player.speed);
+            moving = true;
+            if (isOnIce(player)) { player.slideFrames = 15; player.slideDir = d; } else player.slideFrames = 0;
+          } else if (player.slideFrames > 0) {
+            moveTank(player, player.slideDir, player.speed * 0.65);
+            player.slideFrames--;
+          }
+          if (keys['Space'] || keys['KeyZ'] || keys['KeyX'] || fireHeld || autoHeld) fireBullet(player, true);
+        }
+        sfx.updateEngine(player && player.alive && !gameOverActive, moving);
+
+        if (freezeTimer <= 0) {
+          for (const e of enemies) {
+            if (e.shootCooldown > 0) e.shootCooldown--;
+            e.aiTimer--;
+            if (!moveTank(e, e.dir, e.speed) || e.aiTimer <= 0) {
+              const r = Math.random();
+              if (r < 0.36) e.dir = 2;
+              else if (r < 0.68 && player && player.alive) {
+                const tx = Math.random() < 0.55 ? 12 * SUB : player.x;
+                const ty = Math.random() < 0.55 ? 24 * SUB : player.y;
+                e.dir = Math.abs(tx - e.x) > Math.abs(ty - e.y) ? (tx > e.x ? 1 : 3) : (ty > e.y ? 2 : 0);
+              } else e.dir = Math.floor(Math.random() * 4);
+              e.aiTimer = 32 + Math.floor(Math.random() * 68);
+            }
+            if (e.shootCooldown <= 0 && Math.random() < 0.045) fireBullet(e, false);
+          }
+        }
+
+        updateBullets();
+
+        for (let i = powerups.length - 1; i >= 0; i--) {
+          const p = powerups[i];
+          if (--p.timer <= 0) { powerups.splice(i, 1); continue; }
+          if (player && player.alive && !gameOverActive && rectsOverlap(player, p)) {
+            applyPowerup(p); powerups.splice(i, 1);
+          }
+        }
+        for (let i = explosions.length - 1; i >= 0; i--) if (--explosions[i].timer <= 0) explosions.splice(i, 1);
+        for (let i = floatingTexts.length - 1; i >= 0; i--) { floatingTexts[i].y -= 0.35; if (--floatingTexts[i].timer <= 0) floatingTexts.splice(i, 1); }
+
+        if (!gameOverActive && !enemyQueue.length && !enemies.length && !spawnEffects.length) {
+          if (++stageClearDelay >= 85) {
+            state = 'tally'; sfx.updateEngine(false, false);
+            tallyRowIdx = 0; tallyRowCount = 0; tallyTimer = 20; tallyDone = false;
+          }
+        }
+        if (tick % 10 === 0) updateBuffsHUD();
+      }
+
+      function updateBullets() {
+        for (let i = bullets.length - 1; i >= 0; i--) {
+          const b = bullets[i];
+          b.x += DX[b.dir] * b.speed; b.y += DY[b.dir] * b.speed;
+          if (b.x < 0 || b.y < 0 || b.x + b.w > CANVAS_SIZE || b.y + b.h > CANVAS_SIZE) {
+            addExplosion(b.x + b.w/2, b.y + b.h/2, false);
+            if (b.isPlayer) sfx.hitSteel();
+            bullets.splice(i, 1); continue;
+          }
+          let cancelled = false;
+          for (let j = bullets.length - 1; j >= 0; j--) {
+            if (i === j) continue;
+            if (b.isPlayer !== bullets[j].isPlayer && rectsOverlap(b, bullets[j])) {
+              bullets.splice(Math.max(i, j), 1); bullets.splice(Math.min(i, j), 1);
+              if (j < i) i--; cancelled = true; break;
+            }
+          }
+          if (cancelled) continue;
+          if (handleBulletMapHit(b)) { bullets.splice(i, 1); continue; }
+
+          if (b.isPlayer) {
+            let hitE = false;
+            for (let j = enemies.length - 1; j >= 0; j--) {
+              const e = enemies[j];
+              if (rectsOverlap(b, e)) {
+                hitE = true;
+                if (e.isBonus) { e.isBonus = false; spawnPowerup(); }
+                if (--e.hp <= 0) {
+                  addExplosion(e.x + e.w/2, e.y + e.h/2, true);
+                  sfx.explodeTank(); haptic(45);
+                  stageKills[e.type]++; addScore(e.points, e.x + e.w/2, e.y + 4);
+                  enemies.splice(j, 1); updateHUD();
+                } else { addExplosion(b.x + b.w/2, b.y + b.h/2, false); sfx.hitArmor(); }
+                break;
+              }
+            }
+            if (hitE) { bullets.splice(i, 1); continue; }
+          } else if (player && player.alive && rectsOverlap(b, player)) {
+            bullets.splice(i, 1);
+            if (player.shield > 0) { addExplosion(b.x + b.w/2, b.y + b.h/2, false); sfx.hitSteel(); }
+            else killPlayer();
+          }
+        }
+      }
+
+      function handleBulletMapHit(b) {
+        const blast = (b.dir === 0 || b.dir === 2) ? { x: b.x - 6, y: b.y, w: b.w + 12, h: b.h } : { x: b.x, y: b.y - 6, w: b.w, h: b.h + 12 };
+        const c0 = Math.max(0, Math.floor(blast.x / SUB)), c1 = Math.min(GRID - 1, Math.floor((blast.x + blast.w - 0.01) / SUB));
+        const r0 = Math.max(0, Math.floor(blast.y / SUB)), r1 = Math.min(GRID - 1, Math.floor((blast.y + blast.h - 0.01) / SUB));
+        let hit = false, hitBrick = false, hitSteel = false;
+        for (let r = r0; r <= r1; r++) {
+          for (let c = c0; c <= c1; c++) {
+            const t = map[r][c];
+            if (t === T_BRICK && brickMask[r][c] > 0) {
+              const bx = c * SUB, by = r * SUB;
+              let ch = false;
+              [[B_TL,bx,by],[B_TR,bx+HALF,by],[B_BL,bx,by+HALF],[B_BR,bx+HALF,by+HALF]].forEach(([bit,qx,qy]) => {
+                if ((brickMask[r][c] & bit) && rectsOverlap(blast, { x: qx, y: qy, w: HALF, h: HALF })) { brickMask[r][c] &= ~bit; ch = true; }
+              });
+              if (ch) { hit = true; hitBrick = true; if (brickMask[r][c] === 0) map[r][c] = T_EMPTY; }
+            } else if (t === T_STEEL) {
+              if (rectsOverlap(b, { x: c*SUB, y: r*SUB, w: SUB, h: SUB }) || (b.power >= 2 && rectsOverlap(blast, { x: c*SUB, y: r*SUB, w: SUB, h: SUB }))) {
+                hit = true; hitSteel = true;
+                if (b.power >= 2) map[r][c] = T_EMPTY;
+              }
+            } else if (t === T_EAGLE && rectsOverlap(b, { x: c*SUB, y: r*SUB, w: SUB, h: SUB })) {
+              hit = true; destroyEagle();
+            }
+          }
+        }
+        if (hit) {
+          addExplosion(b.x + b.w/2, b.y + b.h/2, false);
+          if (b.isPlayer) { if (hitBrick || (hitSteel && b.power >= 2)) sfx.hitBrick(); else if (hitSteel) sfx.hitSteel(); }
+        }
+        return hit;
+      }
+
+      function destroyEagle() {
+        if (eagleDestroyed) return;
+        eagleDestroyed = true;
+        map[24][12] = map[24][13] = map[25][12] = map[25][13] = T_EAGLE_DEAD;
+        addExplosion(13 * SUB, 25 * SUB, true);
+        sfx.explodeBase(); haptic(140);
+        triggerRisingGameOver();
+      }
+
+      function killPlayer() {
+        addExplosion(player.x + player.w/2, player.y + player.h/2, true);
+        sfx.explodeTank(); haptic(100);
+        player.alive = false; playerTier = 0; lives--; updateHUD();
+        if (lives <= 0) triggerRisingGameOver();
+        else setTimeout(() => { if (state === 'playing' && !gameOverActive) { spawnPlayer(); updateHUD(); } }, 950);
+      }
+
+      function triggerRisingGameOver() {
+        if (gameOverActive) return;
+        gameOverActive = true; gameOverScrollY = CANVAS_SIZE + 20; gameOverHold = 0;
+        setTimeout(() => sfx.gameOver(), 350);
+      }
+
+      function applyPowerup(p) {
+        haptic(28);
+        addScore(500, p.x + p.w/2, p.y, '500');
+        if (p.type === PU_STAR) { playerTier = Math.min(3, playerTier + 1); sfx.powerupPickup(); }
+        else if (p.type === PU_HELMET) { player.shield = 600; sfx.powerupPickup(); }
+        else if (p.type === PU_CLOCK) { freezeTimer = 600; sfx.powerupPickup(); }
+        else if (p.type === PU_SHOVEL) { shovelTimer = 900; setBaseFort(T_STEEL); sfx.powerupPickup(); }
+        else if (p.type === PU_GRENADE) {
+          sfx.explodeTank(); haptic(80);
+          enemies.forEach(e => { addExplosion(e.x + e.w/2, e.y + e.h/2, true); stageKills[e.type]++; });
+          enemies = [];
+        } else if (p.type === PU_TANK) { lives++; sfx.oneUp(); addFloatingText(p.x + 14, p.y - 10, '1UP', '#4ade80'); }
+        updateHUD();
+      }
+
+      // ============================================================
+      // RENDER
+      // ============================================================
+      function render() {
+        ctx.fillStyle = '#000'; ctx.fillRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
+        if (state === 'title') { renderTitle(); return; }
+        if (state === 'tally') { renderTally(); return; }
+        if (state === 'gameover') { renderGameOver(); return; }
+
+        for (let r = 0; r < GRID; r++) for (let c = 0; c < GRID; c++) {
+          const t = map[r][c];
+          if (t === T_EMPTY || t === T_BUSH) continue;
+          const x = c * SUB, y = r * SUB;
+          if (t === T_BRICK) drawBrickMasked(x, y, brickMask[r][c]);
+          else if (t === T_STEEL) drawSteel(x, y);
+          else if (t === T_WATER) drawWater(x, y);
+          else if (t === T_ICE) drawIce(x, y);
+        }
+        drawEagle(12 * SUB, 24 * SUB, eagleDestroyed);
+
+        if (state === 'editor') {
+          ctx.strokeStyle = 'rgba(255,255,255,0.14)'; ctx.lineWidth = 1;
+          for (let i = 0; i <= 13; i++) {
+            ctx.beginPath(); ctx.moveTo(i*32, 0); ctx.lineTo(i*32, CANVAS_SIZE); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, i*32); ctx.lineTo(CANVAS_SIZE, i*32); ctx.stroke();
+          }
+          for (let r = 0; r < GRID; r++) for (let c = 0; c < GRID; c++) if (map[r][c] === T_BUSH) drawBush(c*SUB, r*SUB);
+          return;
+        }
+
+        spawnEffects.forEach(sp => drawSpawnStar(sp.x + TANK_SIZE/2, sp.y + TANK_SIZE/2, sp.timer));
+        if (player && player.alive) drawTank(player, true);
+        enemies.forEach(e => drawTank(e, false));
+        bullets.forEach(b => { ctx.fillStyle = b.power >= 2 ? '#fde047' : '#fff'; ctx.fillRect(Math.round(b.x), Math.round(b.y), b.w, b.h); });
+        for (let r = 0; r < GRID; r++) for (let c = 0; c < GRID; c++) if (map[r][c] === T_BUSH) drawBush(c*SUB, r*SUB);
+        powerups.forEach(p => { if (p.timer > 180 || Math.floor(tick/6)%2 === 0) drawPowerup(p); });
+        explosions.forEach(drawExplosion);
+
+        ctx.font = 'bold 11px monospace'; ctx.textAlign = 'center';
+        floatingTexts.forEach(ft => { ctx.fillStyle = '#000'; ctx.fillText(ft.text, ft.x+1, ft.y+1); ctx.fillStyle = ft.color; ctx.fillText(ft.text, ft.x, ft.y); });
+
+        if (gameOverActive) {
+          ctx.font = '900 32px monospace'; ctx.textAlign = 'center';
+          ctx.fillStyle = '#000'; ctx.fillText('GAME', CANVAS_SIZE/2+2, gameOverScrollY+2); ctx.fillText('OVER', CANVAS_SIZE/2+2, gameOverScrollY+36);
+          ctx.fillStyle = '#dc2626'; ctx.fillText('GAME', CANVAS_SIZE/2, gameOverScrollY); ctx.fillText('OVER', CANVAS_SIZE/2, gameOverScrollY+34);
+        }
+
+        if (state === 'curtain') {
+          const halfH = Math.round((CANVAS_SIZE / 2) * curtainProgress);
+          ctx.fillStyle = '#6b6b6b';
+          ctx.fillRect(0, 0, CANVAS_SIZE, halfH);
+          ctx.fillRect(0, CANVAS_SIZE - halfH, CANVAS_SIZE, halfH);
+          if (curtainPhase === 'hold') {
+            ctx.fillStyle = '#000'; ctx.font = '900 22px monospace'; ctx.textAlign = 'center';
+            ctx.fillText(`STAGE  ${stageNum}`, CANVAS_SIZE/2, CANVAS_SIZE/2 + 6);
+            ctx.font = 'bold 12px monospace';
+            ctx.fillText(isPlayingCustom ? 'CUSTOM MAP' : STAGES[(stageNum-1)%STAGES.length].name, CANVAS_SIZE/2, CANVAS_SIZE/2 + 28);
+          }
+        }
+      }
+
+      function renderTitle() {
+        ctx.font = 'bold 13px monospace'; ctx.fillStyle = '#fff';
+        ctx.textAlign = 'left'; ctx.fillText(`I- ${String(score).padStart(6,' ')}`, 22, 32);
+        ctx.textAlign = 'center'; ctx.fillText(`HI- ${String(hiScore).padStart(6,' ')}`, CANVAS_SIZE/2 + 24, 32);
+        const drawBrickText = (txt, y) => {
+          ctx.font = '900 62px monospace'; ctx.textAlign = 'center';
+          ctx.fillStyle = '#5c1d0c'; ctx.fillText(txt, CANVAS_SIZE/2+3, y+3);
+          ctx.fillStyle = '#d9531e'; ctx.fillText(txt, CANVAS_SIZE/2, y);
+          ctx.fillStyle = '#000'; for (let sy = y-50; sy < y+4; sy += 8) ctx.fillRect(24, sy, CANVAS_SIZE-48, 2);
+        };
+        drawBrickText('BATTLE', 140);
+        drawBrickText('CITY', 212);
+        drawTank({ x: 112, y: 242, w: 28, h: 28, dir: 1, trackFrame: Math.floor(tick/4)%8, shield: 0 }, true);
+        ctx.fillStyle = '#fff'; ctx.font = 'bold 14px monospace'; ctx.textAlign = 'left';
+        ctx.fillText('1 PLAYER', 156, 261);
+        ctx.fillStyle = '#a1a1aa'; ctx.font = 'bold 11px monospace'; ctx.textAlign = 'center';
+        ctx.fillText('© 1985 NAMCO TRIBUTE · ANDROID EDITION', CANVAS_SIZE/2, 298);
+      }
+
+      function renderTally() {
+        ctx.textAlign = 'center'; ctx.font = 'bold 15px monospace'; ctx.fillStyle = '#dc2626';
+        ctx.fillText(`HI-SCORE   ${hiScore}`, CANVAS_SIZE/2, 46);
+        ctx.fillStyle = '#fff'; ctx.font = 'bold 18px monospace'; ctx.fillText(`STAGE  ${stageNum}`, CANVAS_SIZE/2, 82);
+        ctx.fillStyle = '#f97316'; ctx.font = 'bold 14px monospace'; ctx.textAlign = 'left'; ctx.fillText('I-PLAYER', 48, 114);
+        ctx.fillStyle = '#facc15'; ctx.fillText(String(score), 48, 134);
+        let tot = 0;
+        ['basic','fast','power','armor'].forEach((t, idx) => {
+          const y = 176 + idx * 42;
+          const shown = idx < tallyRowIdx ? stageKills[t] : (idx === tallyRowIdx ? tallyRowCount : 0);
+          tot += shown;
+          drawTank({ x: CANVAS_SIZE/2 - 14, y: y - 18, w: 28, h: 28, dir: 0, type: t, hp: ENEMY_SPECS[t].hp, trackFrame: 0, isBonus: false }, false);
+          ctx.font = 'bold 14px monospace'; ctx.fillStyle = '#fff';
+          ctx.textAlign = 'right'; ctx.fillText(`${shown * ENEMY_SPECS[t].points} PTS`, CANVAS_SIZE/2 - 34, y);
+          ctx.textAlign = 'left'; ctx.fillText(`← ${String(shown).padStart(2,' ')}`, CANVAS_SIZE/2 + 24, y);
+        });
+        ctx.fillStyle = '#fff'; ctx.fillRect(88, 336, CANVAS_SIZE - 176, 3);
+        ctx.textAlign = 'center'; ctx.fillText(`TOTAL   ${tot}`, CANVAS_SIZE/2, 366);
+      }
+
+      function renderGameOver() {
+        ctx.textAlign = 'center'; ctx.font = '900 44px monospace'; ctx.fillStyle = '#dc2626';
+        ctx.fillText('GAME', CANVAS_SIZE/2, 168); ctx.fillText('OVER', CANVAS_SIZE/2, 218);
+        ctx.font = 'bold 14px monospace'; ctx.fillStyle = '#fbbf24'; ctx.fillText(`FINAL SCORE : ${score}`, CANVAS_SIZE/2, 276);
+        ctx.fillStyle = '#d4d4d8'; ctx.fillText(`HI-SCORE : ${hiScore}`, CANVAS_SIZE/2, 302);
+        if (Math.floor(tick/24)%2 === 0) {
+          ctx.fillStyle = '#fff'; ctx.font = 'bold 12px monospace';
+          ctx.fillText('FIRE 버튼 또는 화면 터치로 재시작', CANVAS_SIZE/2, 356);
+        }
+      }
+
+      function drawBrickMasked(x, y, mask) {
+        [[B_TL,x,y],[B_TR,x+HALF,y],[B_BL,x,y+HALF],[B_BR,x+HALF,y+HALF]].forEach(([bit,qx,qy]) => {
+          if (!(mask & bit)) return;
+          ctx.fillStyle = '#a83c18'; ctx.fillRect(qx, qy, HALF, HALF);
+          ctx.fillStyle = '#52525b'; ctx.fillRect(qx, qy+3, HALF, 1); ctx.fillRect(qx, qy+7, HALF, 1);
+          ctx.fillRect(qx + (bit===B_TL||bit===B_TR ? 3 : 6), qy, 1, 4);
+          ctx.fillRect(qx + (bit===B_TL||bit===B_TR ? 7 : 2), qy+4, 1, 4);
+          ctx.fillStyle = '#de6d3b'; ctx.fillRect(qx+1, qy+1, 2, 1); ctx.fillRect(qx+4, qy+5, 3, 1);
+        });
+      }
+      function drawSteel(x, y) {
+        ctx.fillStyle = '#71717a'; ctx.fillRect(x, y, SUB, SUB);
+        ctx.fillStyle = '#e4e4e7'; ctx.fillRect(x+2, y+2, SUB-4, SUB-4);
+        ctx.fillStyle = '#52525b'; ctx.fillRect(x+SUB-3, y+2, 3, SUB-2); ctx.fillRect(x+2, y+SUB-3, SUB-2, 3);
+        ctx.fillStyle = '#fff'; ctx.fillRect(x+4, y+4, 6, 6);
+      }
+      function drawWater(x, y) {
+        const w = Math.floor(tick/18)%2;
+        ctx.fillStyle = '#1d4ed8'; ctx.fillRect(x, y, SUB, SUB);
+        ctx.fillStyle = '#93c5fd'; ctx.fillRect(x+(w?2:6), y+3, 6, 2); ctx.fillRect(x+(w?8:2), y+11, 6, 2);
+      }
+      function drawIce(x, y) {
+        ctx.fillStyle = '#cbd5e1'; ctx.fillRect(x, y, SUB, SUB);
+        ctx.fillStyle = '#f8fafc'; ctx.fillRect(x+2, y+2, 5, 2); ctx.fillRect(x+9, y+9, 5, 2);
+        ctx.fillStyle = '#94a3b8'; ctx.fillRect(x+3, y+12, 4, 1);
+      }
+      function drawBush(x, y) {
+        ctx.fillStyle = '#14532d'; ctx.fillRect(x+1, y+1, SUB-2, SUB-2);
+        ctx.fillStyle = '#16a34a'; ctx.fillRect(x+2, y+2, 5, 5); ctx.fillRect(x+9, y+3, 5, 4); ctx.fillRect(x+4, y+9, 6, 5);
+        ctx.fillStyle = '#4ade80'; ctx.fillRect(x+3, y+3, 2, 2); ctx.fillRect(x+10, y+10, 3, 2);
+      }
+      function drawEagle(x, y, dead) {
+        ctx.fillStyle = '#000'; ctx.fillRect(x, y, 32, 32);
+        if (dead) {
+          ctx.fillStyle = '#52525b'; ctx.fillRect(x+5, y+20, 22, 9);
+          ctx.fillStyle = '#71717a'; ctx.fillRect(x+9, y+14, 14, 8);
+          ctx.fillStyle = '#dc2626'; ctx.fillRect(x+13, y+10, 6, 5);
+          return;
+        }
+        ctx.fillStyle = '#e5e7eb'; ctx.fillRect(x+3, y+7, 7, 14); ctx.fillRect(x+22, y+7, 7, 14); ctx.fillRect(x+6, y+11, 20, 12);
+        ctx.fillStyle = '#9ca3af'; ctx.fillRect(x+11, y+9, 10, 16);
+        ctx.fillStyle = '#fbbf24'; ctx.fillRect(x+12, y+4, 8, 6);
+        ctx.fillStyle = '#111827'; ctx.fillRect(x+13, y+6, 2, 2); ctx.fillRect(x+17, y+6, 2, 2);
+        ctx.fillStyle = '#e5e7eb'; ctx.fillRect(x+9, y+24, 14, 4);
+      }
+      function drawTank(t, isP) {
+        const cx = Math.round(t.x + t.w/2), cy = Math.round(t.y + t.h/2);
+        let body, dark, turret;
+        if (isP) { body = '#facc15'; dark = '#a16207'; turret = '#fef08a'; }
+        else if (t.isBonus && Math.floor(tick/5)%2 === 0) { body = '#f87171'; dark = '#991b1b'; turret = '#fecaca'; }
+        else if (t.type === 'armor') {
+          if (t.hp === 4) { body='#4ade80'; dark='#166534'; turret='#bbf7d0'; }
+          else if (t.hp === 3) { body='#facc15'; dark='#854d0e'; turret='#fef08a'; }
+          else if (t.hp === 2) { body='#93c5fd'; dark='#1e40af'; turret='#dbeafe'; }
+          else { body='#e4e4e7'; dark='#52525b'; turret='#fff'; }
+        } else if (t.type === 'fast') { body='#bae6fd'; dark='#0369a1'; turret='#e0f2fe'; }
+        else if (t.type === 'power') { body='#fde68a'; dark='#b45309'; turret='#fef3c7'; }
+        else { body='#d4d4d8'; dark='#52525b'; turret='#f4f4f5'; }
+
+        ctx.save(); ctx.translate(cx, cy); ctx.rotate((t.dir * Math.PI)/2);
+        const h = TANK_SIZE/2;
+        ctx.fillStyle = dark; ctx.fillRect(-h, -h+2, 6, TANK_SIZE-4); ctx.fillRect(h-6, -h+2, 6, TANK_SIZE-4);
+        ctx.fillStyle = '#09090b';
+        const seg = (t.trackFrame % 4) < 2 ? 0 : 3;
+        for (let ty = -h+3+seg; ty < h-3; ty += 6) { ctx.fillRect(-h, ty, 6, 2); ctx.fillRect(h-6, ty, 6, 2); }
+        ctx.fillStyle = body; ctx.fillRect(-h+5, -h+4, TANK_SIZE-10, TANK_SIZE-8);
+        ctx.fillStyle = turret;
+        if (!isP && t.type === 'armor') ctx.fillRect(-6,-6,12,12);
+        else if (!isP && t.type === 'fast') ctx.fillRect(-4,-3,8,9);
+        else ctx.fillRect(-5,-5,10,10);
+        ctx.fillStyle = body;
+        const bw = (isP && playerTier >= 3) || (!isP && t.type === 'power') ? 6 : 4;
+        const bl = (isP && playerTier >= 1) || (!isP && t.type === 'power') ? 15 : 13;
+        ctx.fillRect(-bw/2, -h-2, bw, bl);
+        if (isP && playerTier > 0) { ctx.fillStyle = '#dc2626'; ctx.fillRect(-2,-2,4,4); }
+        ctx.restore();
+        if (isP && t.shield > 0) {
+          ctx.save(); ctx.strokeStyle = Math.floor(tick/3)%2 === 0 ? '#fff' : '#38bdf8'; ctx.lineWidth = 2;
+          ctx.beginPath(); ctx.arc(cx, cy, TANK_SIZE/2+3, 0, Math.PI*2); ctx.stroke(); ctx.restore();
+        }
+      }
+      function drawSpawnStar(cx, cy, timer) {
+        const r = [6,11,15,10][Math.floor(timer/5)%4];
+        ctx.strokeStyle = '#fef08a'; ctx.lineWidth = 2; ctx.beginPath();
+        ctx.moveTo(cx-r,cy); ctx.lineTo(cx+r,cy); ctx.moveTo(cx,cy-r); ctx.lineTo(cx,cy+r);
+        ctx.moveTo(cx-r*0.7,cy-r*0.7); ctx.lineTo(cx+r*0.7,cy+r*0.7); ctx.moveTo(cx+r*0.7,cy-r*0.7); ctx.lineTo(cx-r*0.7,cy+r*0.7);
+        ctx.stroke();
+      }
+      function drawPowerup(p) {
+        const c = {
+          [PU_STAR]:['#78350f','#fbbf24','★','#fde047'], [PU_HELMET]:['#0c4a6e','#38bdf8','🛡','#bae6fd'],
+          [PU_CLOCK]:['#064e3b','#4ade80','⏱','#bbf7d0'], [PU_SHOVEL]:['#7c2d12','#fb923c','⛏','#fed7aa'],
+          [PU_GRENADE]:['#7f1d1d','#f87171','💣','#fecaca'], [PU_TANK]:['#713f12','#facc15','♥','#fef08a']
+        }[p.type];
+        ctx.fillStyle = c[0]; ctx.fillRect(p.x, p.y, p.w, p.h);
+        ctx.strokeStyle = c[1]; ctx.lineWidth = 2; ctx.strokeRect(p.x+1, p.y+1, p.w-2, p.h-2);
+        ctx.fillStyle = c[3]; ctx.font = 'bold 15px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillText(c[2], p.x+p.w/2, p.y+p.h/2+1); ctx.textBaseline = 'alphabetic';
+      }
+      function drawExplosion(ex) {
+        const p = 1 - ex.timer/ex.maxTimer, r = ex.radius * (0.35 + p*0.75);
+        ctx.save(); ctx.beginPath(); ctx.arc(ex.x, ex.y, r, 0, Math.PI*2);
+        ctx.fillStyle = p < 0.38 ? '#fef08a' : p < 0.72 ? '#f97316' : '#dc2626'; ctx.fill();
+        if (p < 0.55) { ctx.beginPath(); ctx.arc(ex.x, ex.y, r*0.48, 0, Math.PI*2); ctx.fillStyle = '#fff'; ctx.fill(); }
+        ctx.restore();
+      }
+
+      // ============================================================
+      // HUD
+      // ============================================================
+      function updateHUD() {
+        ui.hudScore.textContent = score;
+        ui.hudHiscore.textContent = hiScore;
+        ui.hudLives.textContent = `▲ ${Math.max(0, lives)}`;
+        ui.hudStage.textContent = `⚑ ${stageNum}`;
+        ui.hudTier.textContent = '★'.repeat(playerTier + 1) + '☆'.repeat(3 - playerTier);
+        ui.hudEnemyDots.innerHTML = '';
+        for (let i = 0; i < enemyQueue.length + spawnEffects.length; i++) {
+          const d = document.createElement('div'); d.className = 'edot'; ui.hudEnemyDots.appendChild(d);
+        }
+        for (let i = 0; i < enemies.length; i++) {
+          const d = document.createElement('div'); d.className = 'edot live'; ui.hudEnemyDots.appendChild(d);
+        }
+        updateBuffsHUD();
+      }
+      function updateBuffsHUD() {
+        const parts = [];
+        if (player && player.alive && player.shield > 0) parts.push(`<span style="color:#38bdf8;">🛡${Math.ceil(player.shield/60)}</span>`);
+        if (freezeTimer > 0) parts.push(`<span style="color:#4ade80;">⏱${Math.ceil(freezeTimer/60)}</span>`);
+        if (shovelTimer > 0) parts.push(`<span style="color:#fb923c;">⛏${Math.ceil(shovelTimer/60)}</span>`);
+        ui.hudBuffs.innerHTML = parts.join(' ');
+      }
+
+      // ============================================================
+      // VIRTUAL JOYSTICK + MULTI-TOUCH ARCADE BUTTONS
+      // ============================================================
+      let activeJoyPid = null;
+      const MAX_DIST = 40, DEAD = 12;
+
+      function setJoyVisual(dx, dy, dir) {
+        ui.joyKnob.style.transform = `translate(${dx}px, ${dy}px)`;
+        ui.joyArrows.forEach((el, i) => el.classList.toggle('active', dir === i));
+      }
+      function processJoy(cx, cy) {
+        const r = ui.joyZone.getBoundingClientRect();
+        let dx = cx - (r.left + r.width/2), dy = cy - (r.top + r.height/2);
+        const dist = Math.hypot(dx, dy);
+        if (dist > MAX_DIST) { dx = (dx/dist)*MAX_DIST; dy = (dy/dist)*MAX_DIST; }
+        let nextDir = null;
+        if (dist >= DEAD) nextDir = Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 1 : 3) : (dy > 0 ? 2 : 0);
+        if (nextDir !== null && nextDir !== joyDir) haptic(10);
+        joyDir = nextDir;
+        setJoyVisual(dx, dy, joyDir);
+      }
+      function resetJoy() {
+        activeJoyPid = null; joyDir = null;
+        ui.joyKnob.classList.remove('drag');
+        setJoyVisual(0, 0, null);
+      }
+      ui.joyZone.addEventListener('pointerdown', e => {
+        e.preventDefault(); sfx.init(); activeJoyPid = e.pointerId;
+        ui.joyZone.setPointerCapture(e.pointerId); ui.joyKnob.classList.add('drag');
+        processJoy(e.clientX, e.clientY);
+      });
+      ui.joyZone.addEventListener('pointermove', e => { if (e.pointerId === activeJoyPid) { e.preventDefault(); processJoy(e.clientX, e.clientY); } });
+      ui.joyZone.addEventListener('pointerup', e => { if (e.pointerId === activeJoyPid) resetJoy(); });
+      ui.joyZone.addEventListener('pointercancel', e => { if (e.pointerId === activeJoyPid) resetJoy(); });
+
+      function bindBtn(el, down, up) {
+        let pid = null;
+        el.addEventListener('pointerdown', e => { e.preventDefault(); sfx.init(); pid = e.pointerId; el.setPointerCapture(e.pointerId); el.classList.add('pressed'); down(); });
+        const rel = e => { if (e.pointerId !== pid) return; pid = null; el.classList.remove('pressed'); up(); };
+        el.addEventListener('pointerup', rel); el.addEventListener('pointercancel', rel);
+      }
+      bindBtn(ui.btnFire, () => {
+        if (state === 'gameover') { startNewGame(isPlayingCustom); return; }
+        if (state === 'title') { startNewGame(false); return; }
+        fireHeld = true;
+        if (state === 'playing' && player && player.alive && !gameOverActive) fireBullet(player, true);
+      }, () => { fireHeld = false; });
+      bindBtn(ui.btnAuto, () => { autoHeld = true; }, () => { autoHeld = false; });
+
+      // Keyboard + Gamepad support
+      const K2D = { ArrowUp:0, KeyW:0, ArrowRight:1, KeyD:1, ArrowDown:2, KeyS:2, ArrowLeft:3, KeyA:3 };
+      function getPlayerInputDir() {
+        if (joyDir !== null) return joyDir;
+        for (let i = dirOrder.length - 1; i >= 0; i--) if (keys[dirOrder[i]]) return K2D[dirOrder[i]];
+        return null;
+      }
+      window.addEventListener('keydown', e => {
+        keys[e.code] = true;
+        if (K2D[e.code] !== undefined && !dirOrder.includes(e.code)) dirOrder.push(e.code);
+        if (e.code === 'KeyP' && (state === 'playing' || state === 'paused')) togglePause();
+      });
+      window.addEventListener('keyup', e => { keys[e.code] = false; dirOrder = dirOrder.filter(k => k !== e.code); });
+
+      // Editor touch painting
+      function paintCell(e) {
+        if (state !== 'editor') return;
+        const r = canvas.getBoundingClientRect();
+        const mc = Math.floor(((e.clientX - r.left) * (CANVAS_SIZE / r.width)) / 32);
+        const mr = Math.floor(((e.clientY - r.top) * (CANVAS_SIZE / r.height)) / 32);
+        if (mr < 0 || mr >= 13 || mc < 0 || mc >= 13) return;
+        if ((mr === 12 && (mc === 6 || mc === 4)) || (mr === 0 && (mc === 0 || mc === 6 || mc === 12))) return;
+        customLayout[mr][mc] = editorBrush;
+        buildStageMap(customLayout.map(row => row.join('')));
+      }
+      canvas.addEventListener('pointerdown', e => {
+        if (state === 'editor') { editorPainting = true; paintCell(e); }
+        else if (state === 'gameover') startNewGame(isPlayingCustom);
+      });
+      canvas.addEventListener('pointermove', e => { if (editorPainting && state === 'editor') paintCell(e); });
+      window.addEventListener('pointerup', () => { editorPainting = false; });
+
+      // UI buttons
+      ui.btnAudio.addEventListener('click', () => {
+        sfx.init();
+        if (sfx.audioMode === 'bgm') { sfx.audioMode = 'orig'; ui.btnAudio.textContent = '🔊 엔진'; }
+        else if (sfx.audioMode === 'orig') { sfx.audioMode = 'mute'; ui.btnAudio.textContent = '🔇 음소거'; }
+        else { sfx.audioMode = 'bgm'; ui.btnAudio.textContent = '🔊 BGM'; }
+      });
+      ui.btnCrt.addEventListener('click', () => {
+        crtEnabled = !crtEnabled; ui.crtLayer.classList.toggle('hidden', !crtEnabled);
+        ui.btnCrt.textContent = crtEnabled ? '📺 CRT' : '📺 OFF';
+      });
+      ui.btnPause.addEventListener('click', togglePause);
+      ui.btnResume.addEventListener('click', togglePause);
+      ui.btnTitle.addEventListener('click', showTitle);
+      ui.btnPlay1p.addEventListener('click', () => startNewGame(false));
+      ui.btnOpenEditor.addEventListener('click', openEditor);
+      ui.btnStagePrev.addEventListener('click', () => { selectedStartStage = ((selectedStartStage - 2 + STAGES.length) % STAGES.length) + 1; ui.titleStageNum.textContent = selectedStartStage; });
+      ui.btnStageNext.addEventListener('click', () => { selectedStartStage = (selectedStartStage % STAGES.length) + 1; ui.titleStageNum.textContent = selectedStartStage; });
+      ui.btnEditorClear.addEventListener('click', () => { customLayout = Array.from({ length: 13 }, () => Array(13).fill('.')); buildStageMap(customLayout.map(r => r.join(''))); });
+      ui.btnEditorPlay.addEventListener('click', () => startNewGame(true));
+
+      let last = performance.now(), acc = 0;
+      function loop(now) {
+        acc += Math.min(50, now - last); last = now;
+        while (acc >= 1000 / 60) { update(); acc -= 1000 / 60; }
+        render();
+        requestAnimationFrame(loop);
+      }
+      showTitle();
+      requestAnimationFrame(loop);
+    })();
+  </script>
+</body>
+</html>
